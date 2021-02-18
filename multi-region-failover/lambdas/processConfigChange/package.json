@@ -1,0 +1,8 @@
+{
+  "name": "process-config-change",
+  "version": "1.0.0",
+  "description": "Processes region changes",
+  "main": "app.js",
+  "author": "",
+  "license": "Apache License, Version 2.0"
+}

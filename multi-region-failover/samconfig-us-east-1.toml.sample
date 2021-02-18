@@ -1,0 +1,10 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "multi-region-failover"
+s3_bucket = "<your us-east-1 s3 bucket to upload code to>"
+s3_prefix = "multi-region-failover"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+parameter_overrides = "OriginalPrimaryRegion=\"us-east-1\" Tags=\"tag1=value1, tag2:value2\""
