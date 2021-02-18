@@ -69,11 +69,14 @@ async function processCreate(event) {
 
     // We're not in the original primary region
     let ourReplica = (primaryOriginalDescribeTableResult.Table.Replicas || []).filter(r => r.RegionName === process.env.AWS_REGION);
-    let localReplicaDescribeTableResult;
+    
     if (ourReplica.length == 0)
-        localReplicaDescribeTableResult = await createReplicaAndWait(this.farClient, event, this.pollInterval);
+        await createReplicaAndWait(this.farClient, event, this.pollInterval);
 
-    localReplicaDescribeTableResult = await waitUntilTableIsActive(this.localClient, event.ResourceProperties.TableName, this.pollInterval);
+    let localReplicaDescribeTableResult = await waitUntilTableIsActive(this.localClient, event.ResourceProperties.TableName, this.pollInterval);
+
+    // Tag new resource because tags don't automatically make it from the replicated table
+    await tagResource(this.localClient, localReplicaDescribeTableResult.Table.TableArn, this.schema.Tags);
     
     outputs.TableStreamArn = localReplicaDescribeTableResult.Table.LatestStreamArn;
     outputs.TableArn = localReplicaDescribeTableResult.Table.TableArn;
@@ -124,6 +127,13 @@ async function createReplicaAndWait(client, event, pollInterval) {
     console.log(JSON.stringify(updateTableResult));
     let originalPrimaryRegionDescribeTableResult = await waitUntilTableIsActive(client, event.ResourceProperties.TableName, pollInterval);
     return originalPrimaryRegionDescribeTableResult;
+}
+
+async function tagResource(client, arn, tags) {
+    console.log(`Tagging resource ${arn} in region ${client.config.region} to ${JSON.stringify(tags)}`);
+    let params = { ResourceArn: arn, Tags: tags };
+    let result = await client.tagResource(params).promise();
+    console.log(JSON.stringify(result));
 }
 
 async function waitUntilTableIsActive(client, tableName, pollInterval = 5) {
