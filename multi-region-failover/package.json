@@ -1,0 +1,25 @@
+{
+    "name": "multi-region-failover-cfn-dynamodb",
+    "version": "1.0.0",
+    "description": "Multi-Region failover example using CloudFormation, Global DynamoDB Table version 2019.",
+    "scripts": {
+        "deploy:us-east-1": "cp samconfig-us-east-1.toml samconfig.toml && npm run deploy",
+        "deploy:us-west-2": "cp samconfig-us-west-2.toml samconfig.toml && npm run deploy",
+        "deploy:all": "npm run deploy:us-east-1 && cp samconfig-us-west-2.toml samconfig.toml && sam deploy $SAM_OPTS",
+        "deploy:all:backwards": "npm run deploy:us-west-2 && npm run deploy:us-east-1",
+        "deploy": "npm run build && sam deploy $SAM_OPTS",
+        "build": "npm run lint && sam build",
+        "lint": "cfn-lint template.yml && cfn_nag_scan -i template.yml",
+        "install:full": "npm install && npm install && npm run install:layers && npm run install:lambdas",
+        "install:layers": "npm run install:layers:utils",
+        "install:layers:utils": "cd layers/utils/nodejs && npm install",
+        "install:lambdas": "npm run install:lambdas:cfnGlobalDynamodbManager && npm run install:lambdas:processConfigChange",
+        "install:lambdas:cfnGlobalDynamodbManager": "cd lambdas/cfnGlobalDynamodbManager && npm install",
+        "install:lambdas:processConfigChange": "cd lambdas/processConfigChange && npm install"
+    },
+    "author": "Brandon Miller",
+    "license": "Apache License, Version 2.0",
+    "dependencies": {
+        "aws-sdk": "^2.846.0"
+    }
+}

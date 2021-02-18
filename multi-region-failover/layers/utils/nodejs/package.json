@@ -1,0 +1,11 @@
+{
+  "name": "utils",
+  "version": "1.0.0",
+  "description": "Shared utilities",
+  "main": "utils.js",
+  "author": "Brandon Miller",
+  "license": "Apache License, Version 2.0",
+  "dependencies": {
+    "axios": "^0.19.2"
+  }
+}
