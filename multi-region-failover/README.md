@@ -27,11 +27,12 @@ cp samconfig-us-west-2.toml.sample samconfig-us-west-2.toml
 - Sign into AWS so you can deploy using SAM
 - `npm run deploy:all` to deploy to `us-east-1` and then `us-east-2`.
 - `npm run deploy:all:backwards` deploys the same stacks, but in the opposite order.
-- Insert a key into the created dynamodb table with key `active-region` and a value of `us-east-1`
+- Insert a key into the created dynamodb table with key `active-region` and a string value of `us-east-1`. (key=`active_region`, value=`us-east-1`).
 - Look at the output from `processConfigChangeFuncLogGroup` and make sure all updated successfully in both regions
 
 # Fail over
 - Update the value to `us-west-2` and look at the log output again, validating that the lambdas are now configured to operate in `us-west-2`
+- The whole flip-over should not take much longer than one second--usually about 700ms.
 
 # Parameters
 - `OriginalPrimaryRegion` - The original primary region that shall be declared as active.  This never changes.  When you want to fail over, you'll update the config dynamodb table.  This should be the same value for all `.toml` files

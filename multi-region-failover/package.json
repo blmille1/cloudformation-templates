@@ -5,9 +5,9 @@
     "scripts": {
         "deploy:us-east-1": "cp samconfig-us-east-1.toml samconfig.toml && npm run deploy",
         "deploy:us-west-2": "cp samconfig-us-west-2.toml samconfig.toml && npm run deploy",
-        "deploy:all": "npm run deploy:us-east-1 && cp samconfig-us-west-2.toml samconfig.toml && sam deploy $SAM_OPTS",
+        "deploy:all": "cross-env npm run deploy:us-east-1 && cp samconfig-us-west-2.toml samconfig.toml && sam deploy $SAM_OPTS",
         "deploy:all:backwards": "npm run deploy:us-west-2 && npm run deploy:us-east-1",
-        "deploy": "npm run build && sam deploy $SAM_OPTS",
+        "deploy": "cross-env npm run build && sam deploy $SAM_OPTS",
         "build": "npm run lint && sam build",
         "lint": "cfn-lint template.yml && cfn_nag_scan -i template.yml",
         "install:full": "npm install && npm install && npm run install:layers && npm run install:lambdas",
@@ -20,6 +20,7 @@
     "author": "Brandon Miller",
     "license": "Apache License, Version 2.0",
     "dependencies": {
-        "aws-sdk": "^2.846.0"
+        "aws-sdk": "^2.846.0",
+        "cross-env": "^7.0.3"
     }
 }
