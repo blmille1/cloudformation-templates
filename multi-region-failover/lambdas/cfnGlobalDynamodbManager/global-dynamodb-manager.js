@@ -1,6 +1,8 @@
 let EventEmitter = require('events').EventEmitter;
 const utils = require(process.env.AWS ? '/opt/nodejs/utils' : '../../layers/utils/nodejs/utils');
 const AWS = require('aws-sdk');
+const cfnResponseAsync = require('cfn-response-async');
+
 const defaultSchema = {
     AttributeDefinitions: [ { AttributeName: 'key', AttributeType: 'S' } ], 
     KeySchema: [ { AttributeName: 'key', KeyType: 'HASH' } ], 
@@ -45,11 +47,11 @@ class GlobalDynamodbManager extends EventEmitter {
                     console.log('outputs', JSON.stringify(outputs));
                     break;
             }
-            await utils.cfnSendResponseAsync(event, context, 'SUCCESS', outputs);
+            await cfnResponseAsync.send(event, context, 'SUCCESS', outputs);
         } catch (ex) {
             console.error(`Error for request type ${event.RequestType}: `, ex);
             await utils.catch(ex, { event, context });
-            await utils.cfnSendResponseAsync(event, context, 'FAILED', outputs);
+            await cfnResponseAsync.send(event, context, 'FAILED', outputs);
         }
     }
 }
