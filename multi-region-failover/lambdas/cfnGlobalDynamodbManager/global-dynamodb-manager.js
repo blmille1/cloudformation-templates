@@ -93,6 +93,8 @@ async function processDelete(event) {
         let result = await waitUntilTableIsActive(this.localClient, event.ResourceProperties.TableName, this.pollInterval);
         let deleteTableResult = await this.localClient.deleteTable({ TableName: event.ResourceProperties.TableName }).promise();
         console.log(JSON.stringify(deleteTableResult));
+        console.log(`Waiting until ${event.ResourceProperties.TableName} is deleted...`);
+        await waitUntilTableIsDeleted(this.localClient, event.ResourceProperties.TableName, this.pollInterval);
     } catch (ex) {
         console.log(ex, 'We\'re assuming this is good... Continue with delete...');
         return outputs;
@@ -139,7 +141,6 @@ async function tagResource(client, arn, tags) {
 }
 
 async function waitUntilTableIsActive(client, tableName, pollInterval = 5) {
-    console.log('client', JSON.stringify(client));
     console.log(`Waiting for table ${tableName} in region ${client.config.region} to become ACTIVE`);
     do {
         let describeTableResult = await client.describeTable( { TableName: tableName } ).promise();
@@ -149,5 +150,22 @@ async function waitUntilTableIsActive(client, tableName, pollInterval = 5) {
         console.log(`   Status: ${describeTableResult.Table.TableStatus}.  Waiting ${pollInterval} seconds...`);
         await utils.wait(pollInterval * 1_000);
     } while(true);
+}
+
+async function waitUntilTableIsDeleted(client, tableName, pollInterval) {
+    console.log(`Waiting for table ${tableName} in region ${client.config.region} to delete...`);
+    try {
+        do {
+            let describeTableResult = await client.describeTable( { TableName: tableName } ).promise();
+            console.log(JSON.stringify(describeTableResult));
+            console.log(`   Status: ${describeTableResult.Table.TableStatus}.  Waiting ${pollInterval} seconds...`);
+            await utils.wait(pollInterval * 1_000);
+        } while(true);
+    } catch (ex) {
+        if (ex.code === 'ResourceNotFoundException')
+            console.log('\tDeleted!');
+        else
+            throw ex;
+    }
 }
 module.exports = GlobalDynamodbManager;
