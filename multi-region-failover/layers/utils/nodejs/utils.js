@@ -1,5 +1,3 @@
-const cfnSendResponseAsync = require('./cfn-response-async').sendResponse;
-
 function wait(ms) {
     return new Promise(resolve => {
         setTimeout(resolve, ms);
@@ -39,7 +37,6 @@ function log(...msg) {
     }
 }
 
-exports.cfnSendResponseAsync = cfnSendResponseAsync;
 exports.wait = wait;
 exports.catch = catchFn;
 exports.retry = retry;

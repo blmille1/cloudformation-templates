@@ -4,8 +4,5 @@
   "description": "Shared utilities",
   "main": "utils.js",
   "author": "Brandon Miller",
-  "license": "Apache License, Version 2.0",
-  "dependencies": {
-    "axios": "^0.21.1"
-  }
+  "license": "Apache License, Version 2.0"
 }
