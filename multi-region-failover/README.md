@@ -45,3 +45,4 @@ cp samconfig-us-west-2.toml.sample samconfig-us-west-2.toml
 # Misc.
 - Please note that you can easily configure that function to do anything you need to do--like disable/enable alarms, schedules, etc...  I left those out in order to keep this template short.
 - You can easily extend the global config to allow you to stop importing so that your database may slow down before deployments, etc. by modifying [lambdas/processConfigChange/app.js](lambdas/processConfigChange/app.js).
+- Custom Resource (`cfnGlobalDynamodbManager`) Updates can only handle changes to Tags, but neither `TableName` nor `OriginalPrimaryRegion` may be modified once deployed.

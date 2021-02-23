@@ -47,9 +47,9 @@ Resources:
     Type: Custom::CfnGlobalDynamodbManager
     Properties:
       ServiceToken: !GetAtt cfnGlobalDynamodbManagerFunc.Arn
-      TableName: !Sub ${AWS::StackName}-config
-      OriginalPrimaryRegion: !Ref OriginalPrimaryRegion
-      Tags: !Ref Tags
+      TableName: !Sub ${AWS::StackName}-config # Never change this value once a stack is deployed.  The Custom Resource cannot handle table name changes.
+      OriginalPrimaryRegion: !Ref OriginalPrimaryRegion # Never change this value once it has been deployed.
+      Tags: !Ref Tags # These values may change
   
   cfnGlobalDynamodbManagerFunc:
     Type: AWS::Serverless::Function

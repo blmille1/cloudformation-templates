@@ -42,6 +42,10 @@ class GlobalDynamodbManager extends EventEmitter {
                     outputs = await processCreate.call(this, event);
                     console.log('outputs', JSON.stringify(outputs));
                     break;
+                case 'Update':
+                    outputs = await processUpdate.call(this, event, context);
+                    console.log('outputs', JSON.stringify(outputs));
+                    break;
                 case 'Delete':
                     outputs = await processDelete.call(this, event);
                     console.log('outputs', JSON.stringify(outputs));
@@ -85,6 +89,19 @@ async function processCreate(event) {
     return outputs;
 }
 
+async function processUpdate(event, context) {
+    let outputs = {};
+    // At this point, we'll never delete the old resource
+    context.PhysicalResourceId = event.PhysicalResourceId; // This prevents us from deleting our original resource
+    populateSchema(this.schema, event);
+    let localReplicaDescribeTableResult = await waitUntilTableIsActive(this.localClient, event.ResourceProperties.TableName, this.pollInterval);
+    await tagResource(this.localClient, localReplicaDescribeTableResult.Table.TableArn, this.schema.Tags);
+    outputs.TableStreamArn = localReplicaDescribeTableResult.Table.LatestStreamArn;
+    outputs.TableArn = localReplicaDescribeTableResult.Table.TableArn;
+    
+    return outputs;
+}
+
 async function processDelete(event) {
     let outputs = {};
     // Only delete table if it's not the primary or if it is the primary and has no replicas.
@@ -104,11 +121,7 @@ async function processDelete(event) {
 
 async function getPrimaryTable(client, event, schema, pollInterval) {
     console.log(`Original Primary Region: ${event.ResourceProperties.OriginalPrimaryRegion}`);
-    schema.TableName = event.ResourceProperties.TableName;
-    schema.Tags = event.ResourceProperties.Tags.filter(x => x).map(t => {
-        let pieces = t.split('=');
-        return { Key: pieces[0].trim(), Value: pieces[1].trim() };
-    });
+    populateSchema(schema, event);
     try {
         let result = await waitUntilTableIsActive(client, event.ResourceProperties.TableName, pollInterval);
         return result;
@@ -134,7 +147,7 @@ async function createReplicaAndWait(client, event, pollInterval) {
 }
 
 async function tagResource(client, arn, tags) {
-    console.log(`Tagging resource ${arn} in region ${client.config.region} to ${JSON.stringify(tags)}`);
+    console.log(`Tagging resource ${arn} in region ${client.config.region} with ${JSON.stringify(tags)}`);
     let params = { ResourceArn: arn, Tags: tags };
     let result = await client.tagResource(params).promise();
     console.log(JSON.stringify(result));
@@ -168,4 +181,19 @@ async function waitUntilTableIsDeleted(client, tableName, pollInterval) {
             throw ex;
     }
 }
+
+function populateSchema(schema, event) {
+    schema.TableName = event.ResourceProperties.TableName;
+    schema.Tags = event.ResourceProperties.Tags.map(t => {
+        if (!t) return null;
+
+        let pieces = t.split('=');
+        if (pieces.length !== 2) {
+            console.log(`Invalid Tag: ${t}. Skipping.`);
+            return null;
+        }
+        return { Key: pieces[0].trim(), Value: pieces[1].trim() };
+    }).filter(x => x);
+}
+
 module.exports = GlobalDynamodbManager;
