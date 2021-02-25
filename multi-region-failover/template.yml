@@ -105,7 +105,9 @@ Resources:
                  - dynamodb:UpdateTable
                  - dynamodb:CreateTable
                  - dynamodb:DeleteTable
+                 - dynamodb:ListTagsOfResource
                  - dynamodb:TagResource
+                 - dynamodb:UntagResource
                  - dynamodb:DescribeTable
                  - dynamodb:CreateTableReplica
                  - dynamodb:DeleteTableReplica
