@@ -13,7 +13,6 @@ const defaultSchema = {
 };
 
 class GlobalDynamodbManager extends EventEmitter {
-    event;
     schema;
     pollInterval;
     localClient;
@@ -26,8 +25,8 @@ class GlobalDynamodbManager extends EventEmitter {
     async processEvent(event, context) {
         let outputs = {};
         try {
+            console.log('event', JSON.stringify(event), 'context', JSON.stringify(context));
             // Init
-            this.event = event;
             this.localClient = new AWS.DynamoDB();
             this.farClient = this.localClient;
             if (process.env.AWS_REGION !== event.ResourceProperties.OriginalPrimaryRegion) {
@@ -36,26 +35,23 @@ class GlobalDynamodbManager extends EventEmitter {
 
             // Process
             console.log(`Processing ${event.RequestType}`);
-
             switch(event.RequestType) {
                 case 'Create':
                     outputs = await processCreate.call(this, event);
-                    console.log('outputs', JSON.stringify(outputs));
                     break;
                 case 'Update':
                     outputs = await processUpdate.call(this, event, context);
-                    console.log('outputs', JSON.stringify(outputs));
                     break;
                 case 'Delete':
                     outputs = await processDelete.call(this, event);
-                    console.log('outputs', JSON.stringify(outputs));
                     break;
             }
-            await cfnResponseAsync.send(event, context, 'SUCCESS', outputs);
+            console.log('outputs', JSON.stringify(outputs), 'context', JSON.stringify(context));
+            await cfnResponseAsync.send(event, context, 'SUCCESS', outputs, context.PhysicalResourceId);
         } catch (ex) {
             console.error(`Error for request type ${event.RequestType}: `, ex);
             await utils.catch(ex, { event, context });
-            await cfnResponseAsync.send(event, context, 'FAILED', outputs);
+            await cfnResponseAsync.send(event, context, 'FAILED', outputs, context.PhysicalResourceId);
         }
     }
 }
@@ -148,9 +144,33 @@ async function createReplicaAndWait(client, event, pollInterval) {
 
 async function tagResource(client, arn, tags) {
     console.log(`Tagging resource ${arn} in region ${client.config.region} with ${JSON.stringify(tags)}`);
-    let params = { ResourceArn: arn, Tags: tags };
-    let result = await client.tagResource(params).promise();
-    console.log(JSON.stringify(result));
+    // Get the current tags
+    console.log(`   Getting current tags...`)
+    let currentTags = [];
+    let nextToken;
+    do {
+        let currentTagsResponse = await client.listTagsOfResource({ ResourceArn: arn, NextToken: nextToken }).promise();
+        currentTags.push(...currentTagsResponse.Tags);
+        nextToken = currentTagsResponse.NextToken;
+    } while(nextToken);
+    console.log(JSON.stringify(currentTags));
+
+    // Which tags need to be added/updated?
+    let addOrUpdateTags = tags.filter(t => currentTags.filter(t2 => t2.Key === t.Key && t2.Value === t.Value).length === 0);
+    console.log(`   Tags that need to be added/updated: ${JSON.stringify(addOrUpdateTags)}`);
+    if (addOrUpdateTags.length > 0) {
+        let tagResourceResult = await client.tagResource({ ResourceArn: arn, Tags: addOrUpdateTags }).promise();
+        console.log('tagResource Response:', JSON.stringify(tagResourceResult));
+    }
+
+    // Which tags need to be deleted?
+    let removeTags = currentTags.filter(ct => tags.filter(nt => nt.Key === ct.Key).length === 0).map(t => t.Key);
+    console.log(`   Tags that need to be removed: ${JSON.stringify(removeTags)}`);
+    if (removeTags.length > 0) {
+        let untagResourceResult = await client.untagResource({ ResourceArn: arn, TagKeys: removeTags }).promise();
+        console.log('untagResource Response:', JSON.stringify(untagResourceResult));
+    }
+    console.log('Tagging done.')
 }
 
 async function waitUntilTableIsActive(client, tableName, pollInterval = 5) {
@@ -176,7 +196,7 @@ async function waitUntilTableIsDeleted(client, tableName, pollInterval) {
         } while(true);
     } catch (ex) {
         if (ex.code === 'ResourceNotFoundException')
-            console.log('\tDeleted!');
+            console.log('   Deleted!');
         else
             throw ex;
     }
