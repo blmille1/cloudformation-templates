@@ -118,6 +118,7 @@ Resources:
                  - dynamodb:GetItem
                  - dynamodb:DeleteItem
                  - dynamodb:BatchWriteItem
+                 - iam:CreateServiceLinkedRole
                 Resource: '*'
 
   ###########################################################################
